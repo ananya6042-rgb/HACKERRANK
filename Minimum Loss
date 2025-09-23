@@ -1,0 +1,145 @@
+#include <assert.h>
+#include <ctype.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+char* readline();
+char* ltrim(char*);
+char* rtrim(char*);
+char** split_string(char*);
+
+int parse_int(char*);
+long parse_long(char*);
+
+int cmp(const void *a, const void *b) {
+    long x = ((long *)a)[0];
+    long y = ((long *)b)[0];
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
+}
+
+int minimumLoss(int price_count, long* price) {
+    long (*arr)[2] = malloc(price_count * sizeof *arr);
+    for(int i = 0; i < price_count; i++){
+        arr[i][0] = price[i];
+        arr[i][1] = i;
+    }
+
+    qsort(arr, price_count, sizeof arr[0], cmp);
+
+    long minLoss = LONG_MAX;
+
+    for(int i = 1; i < price_count; i++){
+        long higherPrice = arr[i][0];
+        long lowerPrice  = arr[i-1][0];
+        int higherYear = arr[i][1];
+        int lowerYear  = arr[i-1][1];
+
+        if (higherYear < lowerYear){
+            long loss = higherPrice - lowerPrice;
+            if(loss < minLoss){
+                minLoss = loss;
+            }
+        }
+    }
+
+    free(arr);
+    return (int)minLoss;
+}
+
+int main()
+{
+    FILE* fptr = fopen(getenv("OUTPUT_PATH"), "w");
+
+    int n = parse_int(ltrim(rtrim(readline())));
+    char** price_temp = split_string(rtrim(readline()));
+    long* price = malloc(n * sizeof(long));
+
+    for (int i = 0; i < n; i++) {
+        long price_item = parse_long(*(price_temp + i));
+        *(price + i) = price_item;
+    }
+
+    int result = minimumLoss(n, price);
+    fprintf(fptr, "%d\n", result);
+
+    free(price);
+    fclose(fptr);
+
+    return 0;
+}
+
+char* readline() {
+    size_t alloc_length = 1024;
+    size_t data_length = 0;
+    char* data = malloc(alloc_length);
+
+    while (true) {
+        char* cursor = data + data_length;
+        char* line = fgets(cursor, alloc_length - data_length, stdin);
+        if (!line) break;
+
+        data_length += strlen(cursor);
+        if (data_length < alloc_length - 1 || data[data_length - 1] == '\n') break;
+
+        alloc_length <<= 1;
+        data = realloc(data, alloc_length);
+        if (!data) return NULL;
+    }
+
+    if (data[data_length - 1] == '\n') {
+        data[data_length - 1] = '\0';
+        data = realloc(data, data_length);
+    } else {
+        data = realloc(data, data_length + 1);
+        if (data) data[data_length] = '\0';
+    }
+
+    return data;
+}
+
+char* ltrim(char* str) {
+    if (!str || !*str) return str;
+    while (*str && isspace(*str)) str++;
+    return str;
+}
+
+char* rtrim(char* str) {
+    if (!str || !*str) return str;
+    char* end = str + strlen(str) - 1;
+    while (end >= str && isspace(*end)) end--;
+    *(end + 1) = '\0';
+    return str;
+}
+
+char** split_string(char* str) {
+    char** splits = NULL;
+    char* token = strtok(str, " ");
+    int spaces = 0;
+    while (token) {
+        splits = realloc(splits, sizeof(char*) * ++spaces);
+        splits[spaces - 1] = token;
+        token = strtok(NULL, " ");
+    }
+    return splits;
+}
+
+int parse_int(char* str) {
+    char* endptr;
+    int value = strtol(str, &endptr, 10);
+    if (endptr == str || *endptr != '\0') exit(EXIT_FAILURE);
+    return value;
+}
+
+long parse_long(char* str) {
+    char* endptr;
+    long value = strtol(str, &endptr, 10);
+    if (endptr == str || *endptr != '\0') exit(EXIT_FAILURE);
+    return value;
+}
